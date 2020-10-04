@@ -1,5 +1,6 @@
 import dearpygui.core as dpg
-from PIL import Image
+from PIL import Image, ImageDraw
+import math
 import pickle
 import copy
 import os
@@ -11,29 +12,65 @@ class Board():
         self.current_selection = -1
         self.piece_color = 'b'
         self.pieces = pieces
-        self.size = 320
-        self.piece_size = 40
+        self.piece_size = 80
+        self.size = self.piece_size*8
+        self.lines = []
+        self.step = 0
+        self.drawing_color = '#000000'
 
     def draw_board(self):
+        """
+        Dibuja el tablero pegando las piezas en una imagen vacia
+        """
+
+        p_size = self.piece_size
         dpg.clear_drawing('canvas')
-        board = Image.new('RGB',(320,320))
+        board = Image.new('RGB',(self.size,self.size))
         for row in range(8):
             for colum in range(8):
                 piece = self.pieces[row][colum]
                 piece = '' if piece == '_E' else piece
-                x = self.piece_size*colum
-                y = self.piece_size*row
+                x = p_size*colum
+                y = p_size*row
                 if (-1)**(row+colum) == 1: # fondo blanco
-                    im = Image.open(self.piece_p(str(piece)+'b'))
+                    im = Image.open(self.piece_p(str(piece)+'b')).resize((p_size,p_size))
                 else: # fondo negro
-                    im = Image.open(self.piece_p(str(piece)+'n'))
+                    im = Image.open(self.piece_p(str(piece)+'n')).resize((p_size,p_size))
                 board.paste(im,(x,y))
 
+        draw = ImageDraw.Draw(board)
+        for line in self.lines:
+            init = line[0]
+            end = line[1]
+            draw.line([init,end],width=p_size//8,fill=self.drawing_color)
+            # agregar flecha
+            if init[0] == end[0] or init[1] == end[1]:
+                size_a = self.piece_size//6
+                if init[0] == end[0]:
+                    sig = 1 if end[1] - init[1] < 0 else -1
+                    arrow_0 = (end[0]-size_a,end[1]+size_a*sig)
+                    arrow_1 = (end[0]+size_a,end[1]+size_a*sig)
+                else:
+                    sig = -1 if end[0] - init[0] < 0 else 1
+                    arrow_0 = (end[0]-size_a*sig,end[1]-size_a)
+                    arrow_1 = (end[0]-size_a*sig,end[1]+size_a)
+            else:
+                size_a = self.piece_size // 4
+                sig_0 = -1 if end[0] - init[0] < 0 else 1
+                sig_1 = -1 if end[1] - init[1] < 0 else 1
+                arrow_0 = (end[0]-size_a*sig_0,end[1])
+                arrow_1 = (end[0],end[1]-size_a*sig_1)
+            draw.line([end,arrow_0],width=p_size//8,fill=self.drawing_color)
+            draw.line([end,arrow_1],width=p_size//8,fill=self.drawing_color)
+
+
         board.save('tmp.jpg')
-        dpg.draw_image('canvas','tmp.jpg',[0,320])
-        # os.remove("tmp.jpg")
+        dpg.draw_image('canvas','tmp.jpg',[0,self.size])
 
     def change_box(self,piece_name, position):
+        """
+        Cambia el valor de casilla en la posicion dada por el valor dado
+        """
         if piece_name:
             self.pieces[position[1]][position[0]] = piece_name+self.piece_color
         else:
@@ -42,17 +79,24 @@ class Board():
         self.draw_board()
 
     def get_board_position(self,m_position):
+        "Comvierte las coordenadas dadas a una posicion del tablero dde 8x8"
         if self.size < m_position[0] or self.size < m_position[1]:
             return
 
-        pos = (int((m_position[0]-10)//40), int((m_position[1]+10)//40))
+        pos = (int((m_position[0]-10)//self.piece_size), int((m_position[1]+10)//self.piece_size))
         return pos
 
     def piece_p(self,name):
+        """
+        Duelve el path  de la imagen de la pieza dada
+        """
         path = 'images/piezas-ajedrez/'
         return path + name + '.jpg'
 
     def get_marroquin_row(self,row):
+        """
+        Comvierte el renglon dado del tablero a texto para fuente Marroquin
+        """
         str = ''
         m_p = ''
         for colum in range(8):
@@ -93,6 +137,11 @@ class Board():
         return str
 
     def save_board(self):
+        """
+        Guardar el tablero en texto para fuente Marroquin, y serializa el
+        tablero
+        """
+
         str = '!""""""""#\n'
         for row in range(8):
             str += '$'
@@ -119,6 +168,9 @@ class Board():
             out.close()
 
     def save_board_image(self):
+        """
+        Guarda la imagen del tablero copiando el contenido del archivo tmp.jps
+        """
         board = Image.open('tmp.jpg')
         name = dpg.get_value('save_img_name')
         if len(name) == 0:
@@ -142,7 +194,7 @@ def main():
                      ['_E','_E','_E','_E','_E','_E','_E','_E'],
                      ['_E','_E','_E','_E','_E','_E','_E','_E'],
                      ['_E','_E','_E','_E','_E','_E','_E','_E'],
-                     ['Pb','Pb','Pb','Pb','Pb','_E','Pb','Pb'],
+                     ['Pb','Pb','Pb','Pb','Pb','Pb','Pb','Pb'],
                      ['Tb','Cb','Ab','Db','Rb','Ab','Cb','Tb']]
 
     def mouse_click_callback(sender,data):
@@ -157,19 +209,38 @@ def main():
 
             if c_board.current_selection == dpg.mvKey_1:
                 c_board.change_box('P', position) # put peon
-            if c_board.current_selection == dpg.mvKey_2:
+            elif c_board.current_selection == dpg.mvKey_2:
                 c_board.change_box('T', position) # put toker
-            if c_board.current_selection == dpg.mvKey_3:
+            elif c_board.current_selection == dpg.mvKey_3:
                 c_board.change_box('C', position) # put horse
-            if c_board.current_selection == dpg.mvKey_4:
+            elif c_board.current_selection == dpg.mvKey_4:
                 c_board.change_box('A', position) # put bishop
-            if c_board.current_selection == dpg.mvKey_5:
+            elif c_board.current_selection == dpg.mvKey_5:
                 c_board.change_box('D', position) # put queen
-            if c_board.current_selection == dpg.mvKey_6:
+            elif c_board.current_selection == dpg.mvKey_6:
                 c_board.change_box('R', position) # put king
-            if c_board.current_selection == dpg.mvKey_D:
+            elif c_board.current_selection == dpg.mvKey_D:
                 c_board.change_box(None,position) # remove
+            elif c_board.current_selection == dpg.mvKey_Q:
+                size = c_board.piece_size
+                position = (position[0]*size+(size//2),position[1]*size+(size//2))
+                if c_board.step == 0:
+                    c_board.lines.append([(),()])
+                    c_board.lines[-1][0] = position
+                elif c_board.step == 1:
+                    c_board.lines[-1][1] = position
+                    c_board.draw_board()
 
+                c_board.step = (c_board.step+1)%2
+            elif c_board.current_selection == dpg.mvKey_W:
+                size = c_board.piece_size
+                position = (position[0]*size+(size//2),position[1]*size+(size//2))
+                for i in range(len(c_board.lines)):
+                    line = c_board.lines[i]
+                    if position == line[0] or position == line[1]:
+                        c_board.lines.remove(line)
+                        c_board.draw_board()
+                        break
 
         if data == 1:
             if c_board.piece_color == 'b':
@@ -181,6 +252,10 @@ def main():
 
     def key_press_callback(sender, data):
         nonlocal c_board
+
+        if c_board.current_selection == dpg.mvKey_Q and c_board.step == 1:
+            c_board.lines.pop()
+            c_board.step = 0
 
         if c_board.current_selection == data:
             c_board.current_selection = -1
@@ -205,6 +280,12 @@ def main():
             dpg.set_value("pieza", "Rey")
         if data == dpg.mvKey_D:
             dpg.set_value("accion", "Eliminando Pieza")
+            dpg.set_value("pieza", "Sin seleccionar")
+        if data == dpg.mvKey_Q:
+            dpg.set_value("accion", "Dibujando Flecha")
+            dpg.set_value("pieza", "Sin seleccionar")
+        if data == dpg.mvKey_W:
+            dpg.set_value("accion", "Eliminar Flecha")
             dpg.set_value("pieza", "Sin seleccionar")
 
         c_board.puting_piece = True
@@ -234,12 +315,14 @@ def main():
         nonlocal c_board
         nonlocal empty_board
         c_board.pieces = copy.deepcopy(empty_board)
+        c_board.lines = []
         c_board.draw_board()
 
-    def deafult_board_callback(sender, data):
+    def default_board_callback(sender, data):
         nonlocal c_board
         nonlocal initial_board
         c_board.pieces = copy.deepcopy(initial_board)
+        c_board.lines = []
         c_board.draw_board()
 
     def close(sender,data):
@@ -257,11 +340,13 @@ def main():
         "5 : Reina\n"
         "6 : Rey\n"
         "D : Eliminar\n"
-        "Click Derecho : Cambiar color"
+        "Q : Dibujar Flecha\n"
+        "W : Eliminar Flecha\n"
+        "Click Derecho : Cambiar color de pieza"
     )
 
     c_board = Board(pieces = copy.deepcopy(empty_board))
-    dpg.set_main_window_size(540,560)
+    dpg.set_main_window_size(c_board.size+220,c_board.size+240)
     dpg.set_main_window_title('Diagramador')
     dpg.set_main_window_resizable(False)
     dpg.set_exit_callback(close)
@@ -277,7 +362,7 @@ def main():
     dpg.add_same_line()
     dpg.add_input_text("Nombre de Imagen", width=250, source='save_img_name')
     dpg.add_button("Limpiar tablero", callback=clean_callback)
-    dpg.add_button("Tablero por defecto", callback=deafult_board_callback)
+    dpg.add_button("Tablero por defecto", callback=default_board_callback)
     dpg.add_label_text("Accion", value='Sin seleccionar', source="accion")
     dpg.add_label_text("Pieza", value='Sin seleccionar', source="pieza")
     dpg.add_label_text("Color", value='Blanco', source="color")
