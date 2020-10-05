@@ -16,74 +16,63 @@ class Board():
         self.size = self.piece_size*8
         self.lines = []
         self.step = 0
-        self.drawing_color = '#000000'
+        self.drawing_color = [0,0,0]
 
     def draw_board(self):
         """
         Dibuja el tablero pegando las piezas en una imagen vacia
         """
-
         p_size = self.piece_size
         dpg.clear_drawing('canvas')
         board = Image.new('RGB',(self.size,self.size))
         for row in range(8):
-            for colum in range(8):
-                piece = self.pieces[row][colum]
+            for col in range(8):
+                piece = self.pieces[row][col]
                 piece = '' if piece == '_E' else piece
-                x = p_size*colum
+                x = p_size*col
                 y = p_size*row
-                if (-1)**(row+colum) == 1: # fondo blanco
-                    im = Image.open(self.piece_p(str(piece)+'b')).resize((p_size,p_size))
+                if (-1)**(row+col) == 1: # fondo blanco
+                    im = Image.open(self.piece_p(str(piece)+'b'))
+                    im = im.resize((p_size,p_size))
                 else: # fondo negro
-                    im = Image.open(self.piece_p(str(piece)+'n')).resize((p_size,p_size))
+                    im = Image.open(self.piece_p(str(piece)+'n'))
+                    im = im.resize((p_size,p_size))
                 board.paste(im,(x,y))
 
         draw = ImageDraw.Draw(board)
         for line in self.lines:
             init = line[0]
             end = line[1]
-            draw.line([init,end],width=p_size//8,fill=self.drawing_color)
-            # agregar flecha
-            if init[0] == end[0] or init[1] == end[1]:
-                size_a = self.piece_size//6
-                if init[0] == end[0]:
-                    sig = 1 if end[1] - init[1] < 0 else -1
-                    arrow_0 = (end[0]-size_a,end[1]+size_a*sig)
-                    arrow_1 = (end[0]+size_a,end[1]+size_a*sig)
-                else:
-                    sig = -1 if end[0] - init[0] < 0 else 1
-                    arrow_0 = (end[0]-size_a*sig,end[1]-size_a)
-                    arrow_1 = (end[0]-size_a*sig,end[1]+size_a)
-            else:
-                size_a = self.piece_size // 4
-                sig_0 = -1 if end[0] - init[0] < 0 else 1
-                sig_1 = -1 if end[1] - init[1] < 0 else 1
-                arrow_0 = (end[0]-size_a*sig_0,end[1])
-                arrow_1 = (end[0],end[1]-size_a*sig_1)
-            draw.line([end,arrow_0],width=p_size//8,fill=self.drawing_color)
-            draw.line([end,arrow_1],width=p_size//8,fill=self.drawing_color)
-
+            draw.line([init,end],width=p_size//8,fill=line[2])
+            # agregar flecha-------------------------------------------- TODO
 
         board.save('tmp.jpg')
         dpg.draw_image('canvas','tmp.jpg',[0,self.size])
 
     def change_box(self,piece_name, position):
         """
-        Cambia el valor de casilla en la posicion dada por el valor dado
+        Cambia el valor de casilla en la posicion dada por el
+        valor dado
         """
+        row = position[1]
+        col = position[0]
         if piece_name:
-            self.pieces[position[1]][position[0]] = piece_name+self.piece_color
+            self.pieces[row][col] = piece_name+self.piece_color
         else:
-            self.pieces[position[1]][position[0]] = '_E'
+            self.pieces[row][col] = '_E'
 
         self.draw_board()
 
     def get_board_position(self,m_position):
-        "Comvierte las coordenadas dadas a una posicion del tablero dde 8x8"
+        """
+        Comvierte las coordenadas dadas a una posicion del
+        tablero dde 8x8
+        """
         if self.size < m_position[0] or self.size < m_position[1]:
             return
 
-        pos = (int((m_position[0]-10)//self.piece_size), int((m_position[1]+10)//self.piece_size))
+        pos = (int((m_position[0]-10)//self.piece_size),
+               int((m_position[1]+10)//self.piece_size))
         return pos
 
     def piece_p(self,name):
@@ -95,12 +84,13 @@ class Board():
 
     def get_marroquin_row(self,row):
         """
-        Comvierte el renglon dado del tablero a texto para fuente Marroquin
+        Comvierte el renglon dado del tablero a texto
+        para fuente Marroquin
         """
         str = ''
         m_p = ''
-        for colum in range(8):
-            piece = self.pieces[row][colum]
+        for col in range(8):
+            piece = self.pieces[row][col]
 
             if piece == '_E':
                 m_p = ' '
@@ -128,7 +118,7 @@ class Board():
                 m_p = 'k'
             elif piece == 'Rn':
                 m_p = 'l'
-            if (-1)**(row+colum) == (-1): # fondo negro
+            if (-1)**(row+col) == (-1): # fondo negro
                 if piece == '_E':
                     m_p = '+'
                 m_p = m_p.upper()
@@ -138,8 +128,8 @@ class Board():
 
     def save_board(self):
         """
-        Guardar el tablero en texto para fuente Marroquin, y serializa el
-        tablero
+        Guardar el tablero en texto para fuente Marroquin,
+        y serializa el tablero
         """
 
         str = '!""""""""#\n'
@@ -169,7 +159,8 @@ class Board():
 
     def save_board_image(self):
         """
-        Guarda la imagen del tablero copiando el contenido del archivo tmp.jps
+        Guarda la imagen del tablero copiando el contenido
+        del archivo tmp.jps
         """
         board = Image.open('tmp.jpg')
         name = dpg.get_value('save_img_name')
@@ -223,18 +214,26 @@ def main():
                 c_board.change_box(None,position) # remove
             elif c_board.current_selection == dpg.mvKey_Q:
                 size = c_board.piece_size
-                position = (position[0]*size+(size//2),position[1]*size+(size//2))
+                c = size//2
+                position = (position[0]*size+c,position[1]*size+c)
                 if c_board.step == 0:
-                    c_board.lines.append([(),()])
+                    c_board.lines.append([(),(),''])
                     c_board.lines[-1][0] = position
                 elif c_board.step == 1:
                     c_board.lines[-1][1] = position
+                    color = dpg.get_value('drawing_color')
+                    r = int(color[0])
+                    g = int(color[1])
+                    b = int(color[2])
+                    color = 'rgb({},{},{})'.format(r,g,b)
+                    c_board.lines[-1][2] = color
                     c_board.draw_board()
 
                 c_board.step = (c_board.step+1)%2
             elif c_board.current_selection == dpg.mvKey_W:
                 size = c_board.piece_size
-                position = (position[0]*size+(size//2),position[1]*size+(size//2))
+                c = size//2
+                position = (position[0]*size+c,position[1]*size+c)
                 for i in range(len(c_board.lines)):
                     line = c_board.lines[i]
                     if position == line[0] or position == line[1]:
@@ -245,15 +244,16 @@ def main():
         if data == 1:
             if c_board.piece_color == 'b':
                 c_board.piece_color = 'n'
-                dpg.set_value("color", "Negro")
+                dpg.set_value('color_piece', "Negro")
             else:
                  c_board.piece_color = 'b'
-                 dpg.set_value("color", "Blanco")
+                 dpg.set_value('color_piece', "Blanco")
 
     def key_press_callback(sender, data):
         nonlocal c_board
 
-        if c_board.current_selection == dpg.mvKey_Q and c_board.step == 1:
+        selected__Q = c_board.current_selection == dpg.mvKey_Q
+        if selected__Q and c_board.step == 1:
             c_board.lines.pop()
             c_board.step = 0
 
@@ -292,7 +292,7 @@ def main():
         c_board.current_selection = data
 
     def load_callback(sender, data):
-        def apply_selected_file(sender, data):
+        def file_callback(sender, data):
             nonlocal c_board
             inp = open(data[1],'rb')
             load_board = pickle.load(inp)
@@ -300,7 +300,7 @@ def main():
             c_board = load_board
             c_board.draw_board()
 
-        dpg.open_file_dialog(callback=apply_selected_file, extensions=".sv")
+        dpg.open_file_dialog(callback=file_callback, extensions=".sv")
 
     def save_callback(sender, data):
         nonlocal c_board
@@ -354,18 +354,24 @@ def main():
     dpg.add_image('board_img','',source=c_board.piece_p('Abb'))
     dpg.add_same_line()
     dpg.add_text(controles)
+    dpg.add_color_edit3('Seleccion de Color',source='drawing_color')
+    dpg.set_value('drawing_color',[0,0,0])
     dpg.add_button("Cargar", callback=load_callback)
     dpg.add_button("Guardar", callback=save_callback)
     dpg.add_same_line()
-    dpg.add_input_text("Nombre de Archivo", width=250, source='save_name')
+    name = "Nombre de Archivo"
+    dpg.add_input_text(name, width=250, source='save_name')
     dpg.add_button("Guardar Imagen", callback=save_image_callback)
     dpg.add_same_line()
-    dpg.add_input_text("Nombre de Imagen", width=250, source='save_img_name')
+    name = "Nombre de Imagen"
+    dpg.add_input_text(name, width=250, source='save_img_name')
     dpg.add_button("Limpiar tablero", callback=clean_callback)
-    dpg.add_button("Tablero por defecto", callback=default_board_callback)
-    dpg.add_label_text("Accion", value='Sin seleccionar', source="accion")
+    name = "Tablero por defecto"
+    dpg.add_button(name, callback=default_board_callback)
+    name = "Acción"
+    dpg.add_label_text(name, value='Sin seleccionar', source="accion")
     dpg.add_label_text("Pieza", value='Sin seleccionar', source="pieza")
-    dpg.add_label_text("Color", value='Blanco', source="color")
+    dpg.add_label_text("Color", value='Blanco', source='color_piece')
     c_board.draw_board()
 
     dpg.set_key_press_callback(key_press_callback)
