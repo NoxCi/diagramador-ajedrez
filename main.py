@@ -8,13 +8,14 @@ import os
 class Board():
 
     def __init__(self, pieces = list()):
-        self.puting_piece = False
+        self.action_selected = False
         self.current_selection = -1
         self.piece_color = 'b'
         self.pieces = pieces
         self.piece_size = 80
         self.size = self.piece_size*8
         self.lines = []
+        self.colored_boxes = []
         self.step = 0
         self.drawing_color = [0,0,0]
 
@@ -33,12 +34,21 @@ class Board():
                 y = p_size*row
                 if (-1)**(row+col) == 1: # fondo blanco
                     im = Image.open(self.piece_p(str(piece)+'b'))
-                    im = im.resize((p_size,p_size))
+
                 else: # fondo negro
                     im = Image.open(self.piece_p(str(piece)+'n'))
-                    im = im.resize((p_size,p_size))
+                im = im.resize((p_size,p_size))
+
+                # colored boxes
+                color = self.get_box_color((col,row))
+                if color:
+                    size = (self.piece_size,self.piece_size)
+                    im_color = Image.new('RGB',size,color)
+                    im = Image.blend(im, im_color, 0.5)
                 board.paste(im,(x,y))
 
+
+        # draw lines
         draw = ImageDraw.Draw(board)
         for line in self.lines:
             init = line[0]
@@ -48,6 +58,11 @@ class Board():
 
         board.save('tmp.jpg')
         dpg.draw_image('canvas','tmp.jpg',[0,self.size])
+
+    def get_box_color(self, position):
+        for box in self.colored_boxes:
+            if box[0] == position:
+                return box[1]
 
     def change_box(self,piece_name, position):
         """
@@ -60,8 +75,6 @@ class Board():
             self.pieces[row][col] = piece_name+self.piece_color
         else:
             self.pieces[row][col] = '_E'
-
-        self.draw_board()
 
     def get_board_position(self,m_position):
         """
@@ -191,7 +204,7 @@ def main():
     def mouse_click_callback(sender,data):
         nonlocal c_board
 
-        if data == 0 and c_board.puting_piece:
+        if data == 0 and c_board.action_selected:
             m_position = dpg.get_mouse_pos()
             position = c_board.get_board_position(m_position)
 
@@ -213,6 +226,7 @@ def main():
             elif c_board.current_selection == dpg.mvKey_D:
                 c_board.change_box(None,position) # remove
             elif c_board.current_selection == dpg.mvKey_Q:
+                # draw arrow
                 size = c_board.piece_size
                 c = size//2
                 position = (position[0]*size+c,position[1]*size+c)
@@ -227,10 +241,14 @@ def main():
                     b = int(color[2])
                     color = 'rgb({},{},{})'.format(r,g,b)
                     c_board.lines[-1][2] = color
-                    c_board.draw_board()
 
                 c_board.step = (c_board.step+1)%2
+
+                if c_board.step == 1:
+                    return
+
             elif c_board.current_selection == dpg.mvKey_W:
+                # deltee arrow
                 size = c_board.piece_size
                 c = size//2
                 position = (position[0]*size+c,position[1]*size+c)
@@ -238,8 +256,30 @@ def main():
                     line = c_board.lines[i]
                     if position == line[0] or position == line[1]:
                         c_board.lines.remove(line)
-                        c_board.draw_board()
                         break
+            elif c_board.current_selection == dpg.mvKey_E:
+                # color box
+                color = dpg.get_value('drawing_color')
+                r = int(color[0])
+                g = int(color[1])
+                b = int(color[2])
+                color = 'rgb({},{},{})'.format(r,g,b)
+                found = False
+                for box in c_board.colored_boxes:
+                    if box[0] == position:
+                        box[1] = color
+                        found = True
+                        break
+                if not found:
+                    c_board.colored_boxes.append([position,color])
+            elif c_board.current_selection == dpg.mvKey_R:
+                # discolor box
+                for box in c_board.colored_boxes:
+                    if box[0] == position:
+                        c_board.colored_boxes.remove(box)
+                        break
+
+            c_board.draw_board()
 
         if data == 1:
             if c_board.piece_color == 'b':
@@ -259,7 +299,7 @@ def main():
 
         if c_board.current_selection == data:
             c_board.current_selection = -1
-            c_board.puting_piece = False
+            c_board.action_selected = False
             dpg.set_value("accion", "Sin seleccionar")
             dpg.set_value("pieza", "Sin seleccionar")
             return
@@ -280,15 +320,17 @@ def main():
             dpg.set_value("pieza", "Rey")
         if data == dpg.mvKey_D:
             dpg.set_value("accion", "Eliminando Pieza")
-            dpg.set_value("pieza", "Sin seleccionar")
         if data == dpg.mvKey_Q:
             dpg.set_value("accion", "Dibujando Flecha")
-            dpg.set_value("pieza", "Sin seleccionar")
         if data == dpg.mvKey_W:
             dpg.set_value("accion", "Eliminar Flecha")
-            dpg.set_value("pieza", "Sin seleccionar")
+        if data == dpg.mvKey_E:
+            dpg.set_value("accion", "Colorear Casilla")
+        if data == dpg.mvKey_R:
+            dpg.set_value("accion", "Colorear Casilla")
+        dpg.set_value("pieza", "Sin seleccionar")
 
-        c_board.puting_piece = True
+        c_board.action_selected = True
         c_board.current_selection = data
 
     def load_callback(sender, data):
@@ -342,6 +384,8 @@ def main():
         "D : Eliminar\n"
         "Q : Dibujar Flecha\n"
         "W : Eliminar Flecha\n"
+        "E : Colorear Casilla\n" # TODO
+        "R : Eliminar Casilla Coloreada\n" # TODO
         "Click Derecho : Cambiar color de pieza"
     )
 
