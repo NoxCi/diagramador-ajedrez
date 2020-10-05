@@ -47,7 +47,6 @@ class Board():
                     im = Image.blend(im, im_color, 0.5)
                 board.paste(im,(x,y))
 
-
         # draw lines
         draw = ImageDraw.Draw(board)
         for line in self.lines:
@@ -375,17 +374,17 @@ def main():
 
     controles =(
         "Controles\n"
-        "1 : Peon\n"
-        "2 : Torre\n"
-        "3 : Caballo\n"
-        "4 : Alfil\n"
-        "5 : Reina\n"
-        "6 : Rey\n"
-        "D : Eliminar\n"
+        "1 : Agregar Peon\n"
+        "2 : Agregar Torre\n"
+        "3 : Agregar Caballo\n"
+        "4 : Agregar Alfil\n"
+        "5 : Agregar Reina\n"
+        "6 : Agregar Rey\n"
+        "D : Eliminar Pieza\n"
         "Q : Dibujar Flecha\n"
         "W : Eliminar Flecha\n"
-        "E : Colorear Casilla\n" # TODO
-        "R : Eliminar Casilla Coloreada\n" # TODO
+        "E : Colorear Casilla\n"
+        "R : Eliminar Casilla Coloreada\n"
         "Click Derecho : Cambiar color de pieza"
     )
 
