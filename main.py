@@ -4,6 +4,7 @@ import math
 import pickle
 import copy
 import os
+from utils import recta
 
 class Board():
 
@@ -53,7 +54,41 @@ class Board():
             init = line[0]
             end = line[1]
             draw.line([init,end],width=p_size//8,fill=line[2])
-            # agregar flecha-------------------------------------------- TODO
+            # agregar flecha
+            x = end[0]
+            y = end[1]
+            d = 30
+            if x == init[0]:
+                x0 = x
+                if y-init[1] < 0:
+                    y0 = y+d
+                else:
+                    y0 = y-d
+            else:
+                m, f = recta(init,end)
+                c = math.sqrt(d**2/(1+m**2))
+                if x-init[0] < 0:
+                    x0 = x+c
+                else:
+                    x0 = x-c
+                y0 = f(x0)
+
+            vector = (x0-x,y0-y)
+            v_x = vector[0]
+            v_y = vector[1]
+
+            rad = math.pi / 4
+            x_ = v_x*math.cos(rad) - v_y*math.sin(rad)
+            y_ = v_x*math.sin(rad) + v_y*math.cos(rad)
+            arrow_1 = (int(x_+x),int(y_+y))
+
+            rad = (-1)*(math.pi / 4)
+            x_ = v_x*math.cos(rad) - v_y*math.sin(rad)
+            y_ = v_x*math.sin(rad) + v_y*math.cos(rad)
+            arrow_2 = (int(x_+x),int(y_+y))
+
+            draw.line([end,arrow_1],width=p_size//8,fill=line[2])
+            draw.line([end,arrow_2],width=p_size//8,fill=line[2])
 
         board.save('tmp.jpg')
         dpg.draw_image('canvas','tmp.jpg',[0,self.size])
@@ -326,7 +361,7 @@ def main():
         if data == dpg.mvKey_E:
             dpg.set_value("accion", "Colorear Casilla")
         if data == dpg.mvKey_R:
-            dpg.set_value("accion", "Colorear Casilla")
+            dpg.set_value("accion", "Eliminar Casilla Coloreada")
         dpg.set_value("pieza", "Sin seleccionar")
 
         c_board.action_selected = True
