@@ -16,3 +16,6 @@ segundo con terminación .sv es el archivo que el programa toma al cargar
 un tablero, estos archivos se guardan donde se encuentra el archivo main.py, la
 imagen tambien se guarda en ese lugar. Si no se agrega un nombre a los archivos,
 por defecto se llamaran save.mrq, save.sv y img_save.jpg
+
+Al momento de querer eliminar una flecha, uno debe dar click en el
+principio o en el final de la flecha.
