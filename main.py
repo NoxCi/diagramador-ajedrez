@@ -6,7 +6,7 @@ import copy
 import os
 from utils import recta
 
-class Board():
+class Board:
 
     def __init__(self, pieces = list()):
         self.action_selected = False
@@ -16,7 +16,14 @@ class Board():
         self.piece_size = 80
         self.size = self.piece_size*8
         self.lines = []
-        self.colored_boxes = []
+        self.colored_boxes = [[None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None],
+                              [None,None,None,None,None,None,None,None]]
         self.step = 0
         self.drawing_color = [0,0,0]
 
@@ -40,8 +47,8 @@ class Board():
                     im = Image.open(self.piece_p(str(piece)+'n'))
                 im = im.resize((p_size,p_size))
 
-                # colored boxes
-                color = self.get_box_color((col,row))
+                # color boxes
+                color = self.colored_boxes[row][col]
                 if color:
                     size = (self.piece_size,self.piece_size)
                     im_color = Image.new('RGB',size,color)
@@ -49,7 +56,8 @@ class Board():
                 board.paste(im,(x,y))
 
         # draw lines
-        draw = ImageDraw.Draw(board)
+        im_arrows = Image.new('RGB',(self.size,self.size),'rgb(255,255,255)')
+        draw = ImageDraw.Draw(im_arrows)
         for line in self.lines:
             init = line[0]
             end = line[1]
@@ -90,13 +98,9 @@ class Board():
             draw.line([end,arrow_1],width=p_size//8,fill=line[2])
             draw.line([end,arrow_2],width=p_size//8,fill=line[2])
 
+        board = Image.blend(board,im_arrows,0.3)
         board.save('tmp.jpg')
         dpg.draw_image('canvas','tmp.jpg',[0,self.size])
-
-    def get_box_color(self, position):
-        for box in self.colored_boxes:
-            if box[0] == position:
-                return box[1]
 
     def change_box(self,piece_name, position):
         """
@@ -282,7 +286,7 @@ def main():
                     return
 
             elif c_board.current_selection == dpg.mvKey_W:
-                # deltee arrow
+                # delete arrow
                 size = c_board.piece_size
                 c = size//2
                 position = (position[0]*size+c,position[1]*size+c)
@@ -298,20 +302,15 @@ def main():
                 g = int(color[1])
                 b = int(color[2])
                 color = 'rgb({},{},{})'.format(r,g,b)
-                found = False
-                for box in c_board.colored_boxes:
-                    if box[0] == position:
-                        box[1] = color
-                        found = True
-                        break
-                if not found:
-                    c_board.colored_boxes.append([position,color])
+                col = position[0]
+                row = position[1]
+                print(position)
+                c_board.colored_boxes[row][col] = color
             elif c_board.current_selection == dpg.mvKey_R:
                 # discolor box
-                for box in c_board.colored_boxes:
-                    if box[0] == position:
-                        c_board.colored_boxes.remove(box)
-                        break
+                col = position[0]
+                row = position[1]
+                c_board.colored_boxes[row][col] = None
 
             c_board.draw_board()
 
