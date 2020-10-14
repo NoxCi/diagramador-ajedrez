@@ -1,10 +1,12 @@
 import dearpygui.core as dpg
+from dearpygui.simple import menu_bar, menu
 from PIL import Image, ImageDraw
 import math
 import pickle
 import copy
 import os
 from utils import recta
+from pgn_parser import Parser
 
 class Board:
 
@@ -119,7 +121,9 @@ class Board:
         Comvierte las coordenadas dadas a una posicion del
         tablero dde 8x8
         """
-        if self.size < m_position[0] or self.size < m_position[1]:
+        v1 = m_position[0]  < 0 or self.size < m_position[0]
+        v2 = m_position[1]  < 0 or self.size < m_position[1]
+        if  v1 or v2:
             return
 
         pos = (int((m_position[0]-10)//self.piece_size),
@@ -304,7 +308,6 @@ def main():
                 color = 'rgb({},{},{})'.format(r,g,b)
                 col = position[0]
                 row = position[1]
-                print(position)
                 c_board.colored_boxes[row][col] = color
             elif c_board.current_selection == dpg.mvKey_R:
                 # discolor box
@@ -369,9 +372,9 @@ def main():
     def load_callback(sender, data):
         def file_callback(sender, data):
             nonlocal c_board
-            inp = open(data[1],'rb')
-            load_board = pickle.load(inp)
-            inp.close()
+            file = open(data[1],'rb')
+            load_board = pickle.load(file)
+            file.close()
             c_board = load_board
             c_board.draw_board()
 
@@ -391,6 +394,14 @@ def main():
         nonlocal empty_board
         c_board.pieces = copy.deepcopy(empty_board)
         c_board.lines = []
+        c_board.colored_boxes = [[None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None]]
         c_board.draw_board()
 
     def default_board_callback(sender, data):
@@ -398,6 +409,14 @@ def main():
         nonlocal initial_board
         c_board.pieces = copy.deepcopy(initial_board)
         c_board.lines = []
+        c_board.colored_boxes = [[None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None],
+                                 [None,None,None,None,None,None,None,None]]
         c_board.draw_board()
 
     def close(sender,data):
@@ -405,6 +424,17 @@ def main():
             os.remove("tmp.jpg")
         except Exception as e:
             pass
+
+    def pgn_reader(sender,data):
+        def file_callback(sender, data):
+            nonlocal main_width
+            nonlocal main_height
+            nonlocal c_board
+            pars = Parser()
+            pars.get_plays(data[1])
+            
+            # Lista de partidas cargadas--------------------------------TODO
+        dpg.open_file_dialog(callback=file_callback, extensions=".pgn")
 
     controles =(
         "Controles\n"
@@ -423,32 +453,41 @@ def main():
     )
 
     c_board = Board(pieces = copy.deepcopy(empty_board))
-    dpg.set_main_window_size(c_board.size+220,c_board.size+240)
+    main_width = c_board.size+220
+    main_height= c_board.size+240
+    dpg.set_main_window_size(main_width, main_height)
     dpg.set_main_window_title('Diagramador')
     dpg.set_main_window_resizable(False)
     dpg.set_exit_callback(close)
+
+    with menu_bar('Menu bar'):
+        with menu('Archivo'):
+            dpg.add_menu_item("Guardar", callback=save_callback)
+            dpg.add_menu_item("Guardar Imagen", callback=save_image_callback)
+            dpg.add_menu_item("Cargar tablero", callback=load_callback)
+        with menu('Herramientas'):
+            dpg.add_menu_item("Leer archivo PGN", callback=pgn_reader)
+        with menu('Color'):
+            dpg.add_color_edit3('Seleccion de Color',source='drawing_color')
+
     dpg.add_drawing("canvas", width=c_board.size,height=c_board.size)
     dpg.add_image('board_img','',source=c_board.piece_p('Abb'))
     dpg.add_same_line()
     dpg.add_text(controles)
-    dpg.add_color_edit3('Seleccion de Color',source='drawing_color')
+
     dpg.set_value('drawing_color',[0,0,0])
-    dpg.add_button("Cargar", callback=load_callback)
-    dpg.add_button("Guardar", callback=save_callback)
-    dpg.add_same_line()
     name = "Nombre de Archivo"
     dpg.add_input_text(name, width=250, source='save_name')
-    dpg.add_button("Guardar Imagen", callback=save_image_callback)
-    dpg.add_same_line()
     name = "Nombre de Imagen"
     dpg.add_input_text(name, width=250, source='save_img_name')
     dpg.add_button("Limpiar tablero", callback=clean_callback)
     name = "Tablero por defecto"
     dpg.add_button(name, callback=default_board_callback)
     name = "Acción"
-    dpg.add_label_text(name, value='Sin seleccionar', source="accion")
-    dpg.add_label_text("Pieza", value='Sin seleccionar', source="pieza")
-    dpg.add_label_text("Color", value='Blanco', source='color_piece')
+
+    dpg.add_label_text(name, default_value='Sin seleccionar', source="accion")
+    dpg.add_label_text("Pieza", default_value='Sin seleccionar', source="pieza")
+    dpg.add_label_text("Color de pieza", default_value='Blanco', source='color_piece')
     c_board.draw_board()
 
     dpg.set_key_press_callback(key_press_callback)
