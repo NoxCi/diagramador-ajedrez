@@ -1,7 +1,7 @@
-from utils import is_number
+from utils import is_number, chess_position
 
 class Parser:
-    class Play:
+    class Match:
         def __init__(self):
             self.board = [['Tn','Cn','An','Dn','Rn','An','Cn','Tn'],
                           ['Pn','Pn','Pn','Pn','Pn','Pn','Pn','Pn'],
@@ -44,13 +44,13 @@ class Parser:
                 (1,-1),(-1,0),(1,0)]
                 if col == 4 and row == 7 and color == 'b':
                     directions.append((2,0))
-                    directions.append((-3,0))
+                    directions.append((-2,0))
                 if col == 4 and row == 0 and color == 'n':
                     directions.append((2,0))
-                    directions.append((-3,0))
+                    directions.append((-2,0))
             if piece == 'D':
                 recursive = True
-                directions = [(0,1),(1,1),
+                directions = [(0,1),(-1,1),
                 (1,1),(0,-1),(-1,-1),
                 (1,-1),(-1,0),(1,0)]
             if piece == 'T':
@@ -71,12 +71,12 @@ class Parser:
                 col = pos1[0]+dir[0]
                 row = pos1[1]+dir[1]
 
-                print((col,row),dir,sep=', ')
                 while True:
                     if col < 0 or 7 < col:
                         break
                     if row < 0 or 7 < row:
                         break
+                    print(chess_position(col,row),'| dir:',dir)
                     current_piece = self.board[row][col]
                     if current_piece == '_E':
                         if pos2 == (col,row):
@@ -87,10 +87,9 @@ class Parser:
                                         return True, 1
                                     else:
                                         break
-                                if dir == (-3,0):
+                                if dir == (-2,0):
                                     lib1 = self.board[7][3] == '_E';
-                                    lib2 = self.board[7][2] == '_E';
-                                    if lib1 and lib2:
+                                    if lib1:
                                         return True, -1
                                     else:
                                         break # enroque
@@ -101,15 +100,14 @@ class Parser:
                                         return True, 1
                                     else:
                                         break
-                                if dir == (-3,0):
+                                if dir == (-2,0):
                                     lib1 = self.board[0][3] == '_E';
-                                    lib2 = self.board[0][2] == '_E';
-                                    if lib1 and lib2:
+                                    if lib1:
                                         return True, -1
                                     else:
                                         break # enroque
                             if piece == 'P' and dir[0] != 0:
-                                print(4.1)
+                                print('Peon - Mov diagonal a casilla vacia')
                                 break
                             return True, 0
                         if recursive:
@@ -120,17 +118,17 @@ class Parser:
                             break
                     if current_piece[1] != color:
                         if piece == 'P' and dir[0] == 0:
-                            print(4.2)
+                            print('Peon - Mov frontal a casilla ocupada por color opuesto')
                             break
                         if pos2 == (col,row):
                             return True, 0
                         else:
-                            print(4.3)
+                            print('No es casilla objetivo')
                             break
                     if current_piece[1]==color:
-                        print(4.4)
+                        print('Casilla ocupada por pieza del mismo color')
                         break
-            print(4.5)
+            print('No se encontro posicion valida')
             return False, 0
 
         def pgn_move(self,move,reverse=False):
@@ -142,24 +140,23 @@ class Parser:
             """
 
             print(self.current_move//2+1,move)
-
+            letras = 'abcdefgh'
+            look_for_mate = False
             if move == 'O-O-O' or move == 'O-O':
                 piece = 'R'
-                if color == 'b':
+                if self.current_color == 'b':
                     pos1 = 'e1'
                     if move == 'O-O-O':
-                        pos2 = 'b1'
+                        pos2 = 'c1'
                     else:
                         pos2 = 'g1'
                 else:
                     pos1 = 'e8'
                     if move == 'O-O-O':
-                        pos2 = 'b8'
+                        pos2 = 'c8'
                     else:
                         pos2 = 'g8'
             else:
-                letras = 'abcdefgh'
-                look_for_mate = False
                 if move[0].islower():
                     piece = 'P'
                 else:
@@ -179,16 +176,15 @@ class Parser:
 
                 if move[-1] == '+':
                     look_for_mate = True
-                    move = move[:-1]
-
+                move = move[:5]
                 if '-' in move:
                     move_ = move.split('-')
                     pos1 = move_[0]
-                    pos2 = move_[0]
+                    pos2 = move_[1]
                 elif 'x' in move:
                     move_ = move.split('x')
                     pos1 = move_[0]
-                    pos2 = move_[0]
+                    pos2 = move_[1]
                 else:
                     pos1 = move[:2]
                     pos2 = move[2:]
@@ -209,28 +205,29 @@ class Parser:
             pos2 = (col2, row2)
 
             if self.board[pos1[1]][pos1[0]][0]!=piece:
-                print(3)
+                print('La pieza no esta en la posicion inicial dada')
                 return False
 
             valido, enroque = self.mov_valido(pos1,pos2,piece,self.current_color)
             if valido:
-                if not enroque:
-                    piece_del = self.board[pos2[1]][pos2[0]];
-                    self.pieces_del.append(piece_del)
-                    self.board[pos1[1]][pos1[0]] = '_E'
-                    self.board[pos2[1]][pos2[0]] = piece+self.current_color
-                else:
-                    piece_del = self.board[pos2[1]][pos2[0]+enroque];
-                    self.pieces_del.append(piece_del)
-                    self.board[pos1[1]][pos1[0]] = 'T'+self.current_color
-                    self.board[pos2[1]][pos2[0]+enroque] = piece+self.current_color
+                piece_del = self.board[pos2[1]][pos2[0]];
+                self.pieces_del.append(piece_del)
+                self.board[pos1[1]][pos1[0]] = '_E'
+                self.board[pos2[1]][pos2[0]] = piece+self.current_color
+                if enroque:
+                    self.board[pos1[1]][pos1[0]+enroque] = 'T'+self.current_color
+                    if enroque < 0:
+                        self.board[pos1[1]][0] = '_E'
+                    else:
+                        self.board[pos1[1]][7] = '_E'
+
                 self.print_board()
             else:
                 print(4)
                 return False
 
             if look_for_mate:
-                if not play.mate(self.current_color):
+                if not self.mate(self.current_color):
                     print(5)
                     return False
 
@@ -263,7 +260,7 @@ class Parser:
             return True
 
     def __init__(self):
-        self.plays = {} # Play dict
+        self.matches = [] # Match dict
 
     # excluir los ultimos datos de las partidas "0-1", "1/2-1/2"
     def get_plays(self,pgn_input):
@@ -286,9 +283,9 @@ class Parser:
                     attr += c
 
         file = open(pgn_input,'r')
-        play = self.Play()
+        match = self.Match()
         reading_play = False
-        current_move = 0
+        current_play = 0
         for line in file:
             line = line.strip(' \n')
 
@@ -297,16 +294,16 @@ class Parser:
 
             if line[0] == '[' and reading_play:
                 reading_play = False
-                play.reset_board()
-                self.plays[play.attr["Event"]] = play
-                play = self.Play()
+                match.reset_board()
+                self.matches.append(match)
+                match = self.Match()
 
             if line[0] == '[':
                 line = line.strip('[]')
                 line = line.strip(' ')
                 attr, value = get_attr_val(line)
                 print(attr,value)
-                play.attr[attr] = value
+                match.attr[attr] = value
 
             if line[0] == '1':
                 reading_play = True
@@ -326,36 +323,36 @@ class Parser:
                     if word[0] in ['$!?']:
                         continue
 
-                    move = word.slit('.')
+                    move = word.split('.')
                     num = is_number(move[0])
                     if num:
                         move = move[1]
-                        if num != current_move:
-                            play.current_color = 'b'
-                            current_move = num
+                        if num != current_play:
+                            match.current_color = 'b'
+                            current_play = num
                     else:
                         move = move[0]
-                    if play.pgn_move(move):
-                        play.moves.append(move)
-                        play.current_color = 'n'
-                        play.current_move += 1
-                        move = ''
+                    if not move: # espacio enfrente numero de jugada
+                        continue
+                    if '-1' in move or '-0' in move: # resultado
+                        continue
+                    if match.pgn_move(move):
+                        match.moves.append(move)
+                        match.current_color = 'n'
+                        match.current_move += 1
                     else:
-                        c_move = play.current_move//2 +1
                         text = (
-                        f"Error leyendo movimiento {c_move}-{word} "
-                        f"en {play.attr['Event']}"
+                        f"Error leyendo "
+                        f"movimiento {current_play}: {move} "
+                        f"en partida {len(self.matches)}"
                         )
                         print(text)
                         return False
-                    else:
-                        move += char
 
-
-        play.reset_board()
-        self.plays[play.attr["Event"]] = play
+        match.reset_board()
+        self.matches.append(match)
 
         return True
 
     def get_play(self,name):
-        return self.play[name]
+        return self.match[name]

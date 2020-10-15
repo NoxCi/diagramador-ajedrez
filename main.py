@@ -499,3 +499,5 @@ if __name__ == '__main__':
     main()
     # pars = Parser()
     # pars.get_plays('reference/Kasparovs_Game_long_complete.pgn')
+    # print(pars.matches[0].moves)
+    # print(pars.matches[0].pieces_del)

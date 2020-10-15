@@ -16,3 +16,8 @@ def is_number(n):
         return int(n)
     except Exception as e:
         return False
+
+def chess_position(col, row):
+    letras='abcdefgh'
+    casilla = letras[col] + str(8-row)
+    return casilla
