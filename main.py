@@ -431,8 +431,8 @@ def main():
             nonlocal main_height
             nonlocal c_board
             pars = Parser()
-            pars.get_plays(data[1])
-            
+            pars.get_plays(data[0]+'/'+data[1])
+
             # Lista de partidas cargadas--------------------------------TODO
         dpg.open_file_dialog(callback=file_callback, extensions=".pgn")
 
@@ -497,3 +497,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # pars = Parser()
+    # pars.get_plays('reference/Kasparovs_Game_long_complete.pgn')

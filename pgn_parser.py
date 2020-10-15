@@ -29,7 +29,7 @@ class Parser:
             recursive = False
             if piece == 'P':
                 if color == 'n':
-                    directions = [(0,1),(1,1),
+                    directions = [(0,1),(-1,1),
                     (1,1),]
                     if row == 1:
                         directions.append((0,2))
@@ -39,9 +39,15 @@ class Parser:
                     if row == 6:
                         directions.append((0,-2))
             if piece == 'R':
-                directions = [(0,1),(1,1),
+                directions = [(0,1),(-1,1),
                 (1,1),(0,-1),(-1,-1),
                 (1,-1),(-1,0),(1,0)]
+                if col == 4 and row == 7 and color == 'b':
+                    directions.append((2,0))
+                    directions.append((-3,0))
+                if col == 4 and row == 0 and color == 'n':
+                    directions.append((2,0))
+                    directions.append((-3,0))
             if piece == 'D':
                 recursive = True
                 directions = [(0,1),(1,1),
@@ -53,7 +59,7 @@ class Parser:
                 (-1,0),(1,0)]
             if piece == 'A':
                 recursive = True
-                directions = [(1,1), (1,1),
+                directions = [(1,1), (-1,1),
                 (-1,-1), (1,-1)]
             if piece == 'C':
                 directions=[(1,-2),(-1,-2),
@@ -65,6 +71,7 @@ class Parser:
                 col = pos1[0]+dir[0]
                 row = pos1[1]+dir[1]
 
+                print((col,row),dir,sep=', ')
                 while True:
                     if col < 0 or 7 < col:
                         break
@@ -73,27 +80,58 @@ class Parser:
                     current_piece = self.board[row][col]
                     if current_piece == '_E':
                         if pos2 == (col,row):
+                            if piece == 'R' and pos1 == (4,7) and color == 'b': # enroque
+                                if dir == (2,0):
+                                    lib1 = self.board[7][5] == '_E';
+                                    if lib1:
+                                        return True, 1
+                                    else:
+                                        break
+                                if dir == (-3,0):
+                                    lib1 = self.board[7][3] == '_E';
+                                    lib2 = self.board[7][2] == '_E';
+                                    if lib1 and lib2:
+                                        return True, -1
+                                    else:
+                                        break # enroque
+                            if piece=='R' and pos1 == (4,0) and color == 'n': # enroque
+                                if dir == (2,0):
+                                    lib1 = self.board[0][5] == '_E';
+                                    if lib1:
+                                        return True, 1
+                                    else:
+                                        break
+                                if dir == (-3,0):
+                                    lib1 = self.board[0][3] == '_E';
+                                    lib2 = self.board[0][2] == '_E';
+                                    if lib1 and lib2:
+                                        return True, -1
+                                    else:
+                                        break # enroque
                             if piece == 'P' and dir[0] != 0:
-                                print(3.1)
-                                return False
-                            return True
+                                print(4.1)
+                                break
+                            return True, 0
                         if recursive:
                             col += dir[0]
                             row += dir[1]
+                            continue
                         else:
                             break
                     if current_piece[1] != color:
-                        print(col,row,current_piece,color)
+                        if piece == 'P' and dir[0] == 0:
+                            print(4.2)
+                            break
                         if pos2 == (col,row):
-                            return True
+                            return True, 0
                         else:
-                            print(3.2)
-                            return False
+                            print(4.3)
+                            break
                     if current_piece[1]==color:
-                        print(3.3)
-                        return False
-            print(3.4)
-            return False
+                        print(4.4)
+                        break
+            print(4.5)
+            return False, 0
 
         def pgn_move(self,move,reverse=False):
             """
@@ -103,31 +141,57 @@ class Parser:
             lo contrario
             """
 
-            print(move)
-            letras = 'abcdefgh'
-            look_for_mate = False
-            if move[0].islower():
-                piece = 'P'
-                pos1 = move[:2]
-                pos2 = move[2:4]
+            print(self.current_move//2+1,move)
+
+            if move == 'O-O-O' or move == 'O-O':
+                piece = 'R'
+                if color == 'b':
+                    pos1 = 'e1'
+                    if move == 'O-O-O':
+                        pos2 = 'b1'
+                    else:
+                        pos2 = 'g1'
+                else:
+                    pos1 = 'e8'
+                    if move == 'O-O-O':
+                        pos2 = 'b8'
+                    else:
+                        pos2 = 'g8'
             else:
-                piece_en = move[0]
-                pos1 = move[1:3]
-                pos2 = move[3:5]
+                letras = 'abcdefgh'
+                look_for_mate = False
+                if move[0].islower():
+                    piece = 'P'
+                else:
+                    piece_en = move[0]
+                    move = move[1:]
 
-                if piece_en == 'K':
-                    piece = 'R'
-                elif piece_en == 'Q':
-                    piece = 'D'
-                elif piece_en == 'R':
-                    piece = 'T'
-                elif piece_en == 'B':
-                    piece = 'A'
-                elif piece_en == 'N':
-                    piece = 'C'
+                    if piece_en == 'K':
+                        piece = 'R'
+                    elif piece_en == 'Q':
+                        piece = 'D'
+                    elif piece_en == 'R':
+                        piece = 'T'
+                    elif piece_en == 'B':
+                        piece = 'A'
+                    elif piece_en == 'N':
+                        piece = 'C'
 
-            if move[-1] == '+':
-                look_for_mate = True
+                if move[-1] == '+':
+                    look_for_mate = True
+                    move = move[:-1]
+
+                if '-' in move:
+                    move_ = move.split('-')
+                    pos1 = move_[0]
+                    pos2 = move_[0]
+                elif 'x' in move:
+                    move_ = move.split('x')
+                    pos1 = move_[0]
+                    pos2 = move_[0]
+                else:
+                    pos1 = move[:2]
+                    pos2 = move[2:]
 
             try:
                 col1 = letras.find(pos1[0])
@@ -138,29 +202,36 @@ class Parser:
                     print(1)
                     return False
             except Exception as e:
+                print(2)
                 return False
 
             pos1 = (col1, row1)
             pos2 = (col2, row2)
 
-            print(self.board[pos1[1]][pos1[0]][0])
             if self.board[pos1[1]][pos1[0]][0]!=piece:
-                print(2)
+                print(3)
                 return False
 
-            if self.mov_valido(pos1,pos2,piece,self.current_color):
-                piece_del = self.board[pos2[1]][pos2[0]];
-                self.pieces_del.append(piece_del)
-                self.board[pos1[1]][pos1[0]] = '_E'
-                self.board[pos2[1]][pos2[0]] = piece
-                print(self.board)
+            valido, enroque = self.mov_valido(pos1,pos2,piece,self.current_color)
+            if valido:
+                if not enroque:
+                    piece_del = self.board[pos2[1]][pos2[0]];
+                    self.pieces_del.append(piece_del)
+                    self.board[pos1[1]][pos1[0]] = '_E'
+                    self.board[pos2[1]][pos2[0]] = piece+self.current_color
+                else:
+                    piece_del = self.board[pos2[1]][pos2[0]+enroque];
+                    self.pieces_del.append(piece_del)
+                    self.board[pos1[1]][pos1[0]] = 'T'+self.current_color
+                    self.board[pos2[1]][pos2[0]+enroque] = piece+self.current_color
+                self.print_board()
             else:
-                print(3)
+                print(4)
                 return False
 
             if look_for_mate:
                 if not play.mate(self.current_color):
-                    print(4)
+                    print(5)
                     return False
 
             return True
@@ -175,6 +246,18 @@ class Parser:
                           ['_E','_E','_E','_E','_E','_E','_E','_E'],
                           ['Pb','Pb','Pb','Pb','Pb','Pb','Pb','Pb'],
                           ['Tb','Cb','Ab','Db','Rb','Ab','Cb','Tb']]
+
+        def print_board(self):
+            string = '8: '+str(self.board[0])+'\n'
+            string += '7: '+str(self.board[1])+'\n'
+            string += '6: '+str(self.board[2])+'\n'
+            string += '5: '+str(self.board[3])+'\n'
+            string += '4: '+str(self.board[4])+'\n'
+            string += '3: '+str(self.board[5])+'\n'
+            string += '2: '+str(self.board[6])+'\n'
+            string += '1: '+str(self.board[7])+'\n'
+            string += '      a     b     c     d     e     f     g     h '
+            print(string)
 
         def mate(self, color):
             return True
@@ -205,7 +288,7 @@ class Parser:
         file = open(pgn_input,'r')
         play = self.Play()
         reading_play = False
-        current_play = 0
+        current_move = 0
         for line in file:
             line = line.strip(' \n')
 
@@ -229,8 +312,8 @@ class Parser:
                 reading_play = True
 
             if reading_play:
-                words = line.split(' ')
                 bracket_open = False
+                words = line.split(' ')
                 for word in words:
                     if bracket_open:
                         if word[-1] == '}':
@@ -243,25 +326,31 @@ class Parser:
                     if word[0] in ['$!?']:
                         continue
 
-                    word = word.strip('.')
-                    num = is_number(word)
+                    move = word.slit('.')
+                    num = is_number(move[0])
                     if num:
-                        if num != current_play:
+                        move = move[1]
+                        if num != current_move:
                             play.current_color = 'b'
-                            current_play = num
+                            current_move = num
                     else:
-                        if play.pgn_move(word):
-                            play.moves.append(word)
-                            play.current_color = 'n'
-                            play.current_move += 1
-                        else:
-                            c_move = play.current_move
-                            text = (
-                            f"Error leyendo movimiento {c_move}-{word} "
-                            f"en {play.attr['Event']}"
-                            )
-                            print(text)
-                            return False
+                        move = move[0]
+                    if play.pgn_move(move):
+                        play.moves.append(move)
+                        play.current_color = 'n'
+                        play.current_move += 1
+                        move = ''
+                    else:
+                        c_move = play.current_move//2 +1
+                        text = (
+                        f"Error leyendo movimiento {c_move}-{word} "
+                        f"en {play.attr['Event']}"
+                        )
+                        print(text)
+                        return False
+                    else:
+                        move += char
+
 
         play.reset_board()
         self.plays[play.attr["Event"]] = play
