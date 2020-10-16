@@ -18,6 +18,10 @@ def is_number(n):
         return False
 
 def chess_position(col, row):
+    """
+    Covierte una posicion capaz de axceder a un arreglo de 8x8
+    a un formato de ajedrez
+    """
     letras='abcdefgh'
     casilla = letras[col] + str(8-row)
     return casilla

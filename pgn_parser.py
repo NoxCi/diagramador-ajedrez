@@ -13,12 +13,15 @@ class Parser:
                           ['Tb','Cb','Ab','Db','Rb','Ab','Cb','Tb']]
             self.attr = {}
             self.moves = []
-            self.pieces_del = [] # se guarda la pieza que se elimino en dado movimiento
+            self.pieces_del = {} # se guarda la pieza que se elimino en dado movimiento
             self.current_move = 0
             self.current_color = 'b'
 
         def next_position(self):
-            pass
+            move = self.moves[self.current_move]
+            self.pgn_move(move)
+            self.current_color = 'n' if self.current_color == 'b' else 'b'
+            self.current_move += 1
 
         def previews_position(self):
             pass
@@ -211,7 +214,7 @@ class Parser:
             valido, enroque = self.mov_valido(pos1,pos2,piece,self.current_color)
             if valido:
                 piece_del = self.board[pos2[1]][pos2[0]];
-                self.pieces_del.append(piece_del)
+                self.pieces_del[self.current_move] = piece_del
                 self.board[pos1[1]][pos1[0]] = '_E'
                 self.board[pos2[1]][pos2[0]] = piece+self.current_color
                 if enroque:
@@ -234,6 +237,7 @@ class Parser:
             return True
 
         def reset_board(self):
+            self.current_color = 'b'
             self.current_move = 0
             self.board = [['Tn','Cn','An','Dn','Rn','An','Cn','Tn'],
                           ['Pn','Pn','Pn','Pn','Pn','Pn','Pn','Pn'],
@@ -261,6 +265,7 @@ class Parser:
 
     def __init__(self):
         self.matches = [] # Match dict
+        self.current_match = self.Match()
 
     # excluir los ultimos datos de las partidas "0-1", "1/2-1/2"
     def get_plays(self,pgn_input):

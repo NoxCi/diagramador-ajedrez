@@ -1,5 +1,5 @@
 import dearpygui.core as dpg
-from dearpygui.simple import menu_bar, menu
+from dearpygui.simple import menu_bar, menu, window
 from PIL import Image, ImageDraw
 import math
 import pickle
@@ -10,11 +10,10 @@ from pgn_parser import Parser
 
 class Board:
 
-    def __init__(self, pieces = list()):
-        self.action_selected = False
+    def __init__(self, board = list()):
         self.current_selection = -1
         self.piece_color = 'b'
-        self.pieces = pieces
+        self.board = board
         self.piece_size = 80
         self.size = self.piece_size*8
         self.lines = []
@@ -28,6 +27,7 @@ class Board:
                               [None,None,None,None,None,None,None,None]]
         self.step = 0
         self.drawing_color = [0,0,0]
+        self.reading_pgn = False
 
     def draw_board(self):
         """
@@ -38,7 +38,7 @@ class Board:
         board = Image.new('RGB',(self.size,self.size))
         for row in range(8):
             for col in range(8):
-                piece = self.pieces[row][col]
+                piece = self.board[row][col]
                 piece = '' if piece == '_E' else piece
                 x = p_size*col
                 y = p_size*row
@@ -112,9 +112,9 @@ class Board:
         row = position[1]
         col = position[0]
         if piece_name:
-            self.pieces[row][col] = piece_name+self.piece_color
+            self.board[row][col] = piece_name+self.piece_color
         else:
-            self.pieces[row][col] = '_E'
+            self.board[row][col] = '_E'
 
     def get_board_position(self,m_position):
         """
@@ -145,7 +145,7 @@ class Board:
         str = ''
         m_p = ''
         for col in range(8):
-            piece = self.pieces[row][col]
+            piece = self.board[row][col]
 
             if piece == '_E':
                 m_p = ' '
@@ -246,7 +246,7 @@ def main():
     def mouse_click_callback(sender,data):
         nonlocal c_board
 
-        if data == 0 and c_board.action_selected:
+        if data == 0 and c_board.current_selection != -1:
             m_position = dpg.get_mouse_pos()
             position = c_board.get_board_position(m_position)
 
@@ -327,6 +327,12 @@ def main():
 
     def key_press_callback(sender, data):
         nonlocal c_board
+        if data == dpg.mvKey_Right:
+            if c_board.reading_pgn:
+                pars.current_match.next_position()
+                c_board.draw_board()
+            else:
+                return
 
         selected__Q = c_board.current_selection == dpg.mvKey_Q
         if selected__Q and c_board.step == 1:
@@ -335,39 +341,48 @@ def main():
 
         if c_board.current_selection == data:
             c_board.current_selection = -1
-            c_board.action_selected = False
             dpg.set_value("accion", "Sin seleccionar")
             dpg.set_value("pieza", "Sin seleccionar")
             return
 
         if 48 < data and data < 55:
             dpg.set_value("accion", "Añadiendo Pieza")
+            c_board.current_selection = data
+        elif data == dpg.mvKey_D:
+            dpg.set_value("accion", "Eliminando Pieza")
+            c_board.current_selection = data
+        elif data == dpg.mvKey_Q:
+            dpg.set_value("accion", "Dibujando Flecha")
+            c_board.current_selection = data
+        elif data == dpg.mvKey_W:
+            dpg.set_value("accion", "Eliminar Flecha")
+            c_board.current_selection = data
+        elif data == dpg.mvKey_E:
+            dpg.set_value("accion", "Colorear Casilla")
+            c_board.current_selection = data
+        elif data == dpg.mvKey_R:
+            dpg.set_value("accion", "Eliminar Casilla Coloreada")
+            c_board.current_selection = data
+        else:
+            dpg.set_value("accion", "Sin seleccionar")
+            c_board.current_selection = -1
+
         if data == dpg.mvKey_1:
             dpg.set_value("pieza", "Peon")
-        if data == dpg.mvKey_2:
+        elif data == dpg.mvKey_2:
             dpg.set_value("pieza", "Torre")
-        if data == dpg.mvKey_3:
+        elif data == dpg.mvKey_3:
             dpg.set_value("pieza", "Caballo")
-        if data == dpg.mvKey_4:
+        elif data == dpg.mvKey_4:
             dpg.set_value("pieza", "Alfil")
-        if data == dpg.mvKey_5:
+        elif data == dpg.mvKey_5:
             dpg.set_value("pieza", "Reina")
-        if data == dpg.mvKey_6:
+        elif data == dpg.mvKey_6:
             dpg.set_value("pieza", "Rey")
-        if data == dpg.mvKey_D:
-            dpg.set_value("accion", "Eliminando Pieza")
-        if data == dpg.mvKey_Q:
-            dpg.set_value("accion", "Dibujando Flecha")
-        if data == dpg.mvKey_W:
-            dpg.set_value("accion", "Eliminar Flecha")
-        if data == dpg.mvKey_E:
-            dpg.set_value("accion", "Colorear Casilla")
-        if data == dpg.mvKey_R:
-            dpg.set_value("accion", "Eliminar Casilla Coloreada")
-        dpg.set_value("pieza", "Sin seleccionar")
+        else:
+            dpg.set_value("pieza", "Sin seleccionar")
 
-        c_board.action_selected = True
-        c_board.current_selection = data
+
 
     def load_callback(sender, data):
         def file_callback(sender, data):
@@ -392,7 +407,8 @@ def main():
     def clean_callback(sender, data):
         nonlocal c_board
         nonlocal empty_board
-        c_board.pieces = copy.deepcopy(empty_board)
+        c_board.reading_pgn = False
+        c_board.board = copy.deepcopy(empty_board)
         c_board.lines = []
         c_board.colored_boxes = [[None,None,None,None,None,None,None,None],
                                  [None,None,None,None,None,None,None,None],
@@ -407,7 +423,8 @@ def main():
     def default_board_callback(sender, data):
         nonlocal c_board
         nonlocal initial_board
-        c_board.pieces = copy.deepcopy(initial_board)
+        c_board.reading_pgn = False
+        c_board.board = copy.deepcopy(initial_board)
         c_board.lines = []
         c_board.colored_boxes = [[None,None,None,None,None,None,None,None],
                                  [None,None,None,None,None,None,None,None],
@@ -426,14 +443,54 @@ def main():
             pass
 
     def pgn_reader(sender,data):
-        def file_callback(sender, data):
-            nonlocal main_width
-            nonlocal main_height
+
+        def load_match(sender,data):
+            nonlocal pars
             nonlocal c_board
+            coords = dpg.get_table_selections(sender)
+            dpg.delete_item('Partidas')
+            dpg.delete_item('Lista de Partidas')
+            i = coords[0][0]
+            match = pars.matches[i]
+            pars.current_match = match
+            c_board.board = match.board
+            c_board.reading_pgn = True
+            c_board.draw_board()
+
+        def close_callback(sender,data):
+            dpg.delete_item('Partidas')
+            dpg.delete_item('Lista de Partidas')
+
+        def file_callback(sender, data):
+            nonlocal c_board
+            nonlocal pars
+
             pars = Parser()
             pars.get_plays(data[0]+'/'+data[1])
 
             # Lista de partidas cargadas--------------------------------TODO
+            dpg.add_window('Lista de Partidas',on_close=close_callback)
+            colums = set()
+            for match in pars.matches:
+                for att in match.attr:
+                    colums.add(att)
+            colums = list(colums)
+            # colums.sort()
+            dpg.add_table("Partidas", colums, callback=load_match)
+
+            rows = list()
+            for match in pars.matches:
+                row = list()
+                for colum in colums:
+                    row.append(match.attr[colum])
+
+                rows.append(row)
+
+            for row in rows:
+                dpg.add_row("Partidas", row)
+
+            dpg.end()
+
         dpg.open_file_dialog(callback=file_callback, extensions=".pgn")
 
     controles =(
@@ -452,7 +509,9 @@ def main():
         "Click Derecho : Cambiar color de pieza"
     )
 
-    c_board = Board(pieces = copy.deepcopy(empty_board))
+    c_board = Board(board = copy.deepcopy(empty_board))
+    pars = Parser()
+
     main_width = c_board.size+220
     main_height= c_board.size+240
     dpg.set_main_window_size(main_width, main_height)
@@ -483,8 +542,8 @@ def main():
     dpg.add_button("Limpiar tablero", callback=clean_callback)
     name = "Tablero por defecto"
     dpg.add_button(name, callback=default_board_callback)
-    name = "Acción"
 
+    name = "Acción"
     dpg.add_label_text(name, default_value='Sin seleccionar', source="accion")
     dpg.add_label_text("Pieza", default_value='Sin seleccionar', source="pieza")
     dpg.add_label_text("Color de pieza", default_value='Blanco', source='color_piece')
@@ -499,5 +558,3 @@ if __name__ == '__main__':
     main()
     # pars = Parser()
     # pars.get_plays('reference/Kasparovs_Game_long_complete.pgn')
-    # print(pars.matches[0].moves)
-    # print(pars.matches[0].pieces_del)
