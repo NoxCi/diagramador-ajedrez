@@ -18,13 +18,23 @@ class Parser:
             self.current_color = 'b'
 
         def next_position(self):
+            if not self.current_move < len(self.moves) :
+                return
+
             move = self.moves[self.current_move]
             self.pgn_move(move)
             self.current_color = 'n' if self.current_color == 'b' else 'b'
+            size = len(self.moves)
             self.current_move += 1
 
         def previews_position(self):
-            pass
+            if not self.current_move > 0:
+                return
+
+            self.current_move -= 1
+            self.current_color = 'n' if self.current_color == 'b' else 'b'
+            move = self.moves[self.current_move]
+            self.pgn_move(move, reverse=True)
 
         def mov_valido(self,pos1,pos2,piece,color):
             col = pos1[0]
@@ -79,7 +89,6 @@ class Parser:
                         break
                     if row < 0 or 7 < row:
                         break
-                    print(chess_position(col,row),'| dir:',dir)
                     current_piece = self.board[row][col]
                     if current_piece == '_E':
                         if pos2 == (col,row):
@@ -110,7 +119,7 @@ class Parser:
                                     else:
                                         break # enroque
                             if piece == 'P' and dir[0] != 0:
-                                print('Peon - Mov diagonal a casilla vacia')
+                                # print('Peon - Mov diagonal a casilla vacia')
                                 break
                             return True, 0
                         if recursive:
@@ -121,17 +130,17 @@ class Parser:
                             break
                     if current_piece[1] != color:
                         if piece == 'P' and dir[0] == 0:
-                            print('Peon - Mov frontal a casilla ocupada por color opuesto')
+                            # print('Peon - Mov frontal a casilla ocupada por color opuesto')
                             break
                         if pos2 == (col,row):
                             return True, 0
                         else:
-                            print('No es casilla objetivo')
+                            # print('No es casilla objetivo')
                             break
                     if current_piece[1]==color:
-                        print('Casilla ocupada por pieza del mismo color')
+                        # print('Casilla ocupada por pieza del mismo color')
                         break
-            print('No se encontro posicion valida')
+            # print('No se encontro posicion valida')
             return False, 0
 
         def pgn_move(self,move,reverse=False):
@@ -145,20 +154,28 @@ class Parser:
             print(self.current_move//2+1,move)
             letras = 'abcdefgh'
             look_for_mate = False
-            if move == 'O-O-O' or move == 'O-O':
+            is_enroque = False
+
+            if move[-1] == '+':
+                move = move[:-1]
+                look_for_mate = True
+
+            if move in ['O-O-O','O-O']:
+                move_ = move
+                is_enroque = True
                 piece = 'R'
                 if self.current_color == 'b':
-                    pos1 = 'e1'
-                    if move == 'O-O-O':
-                        pos2 = 'c1'
+                    move = 'e1'
+                    if move_ == 'O-O-O':
+                        move += 'c1'
                     else:
-                        pos2 = 'g1'
+                        move += 'g1'
                 else:
-                    pos1 = 'e8'
-                    if move == 'O-O-O':
-                        pos2 = 'c8'
+                    move = 'e8'
+                    if move_ == 'O-O-O':
+                        move += 'c8'
                     else:
-                        pos2 = 'g8'
+                        move += 'g8'
             else:
                 if move[0].islower():
                     piece = 'P'
@@ -177,21 +194,25 @@ class Parser:
                     elif piece_en == 'N':
                         piece = 'C'
 
-                if move[-1] == '+':
-                    look_for_mate = True
-                move = move[:5]
-                if '-' in move:
-                    move_ = move.split('-')
-                    pos1 = move_[0]
-                    pos2 = move_[1]
-                elif 'x' in move:
-                    move_ = move.split('x')
-                    pos1 = move_[0]
-                    pos2 = move_[1]
-                else:
-                    pos1 = move[:2]
-                    pos2 = move[2:]
+            if '-' in move:
+                move_ = move.split('-')
+                pos1 = move_[0]
+                pos2 = move_[1]
+            elif 'x' in move:
+                move_ = move.split('x')
+                pos1 = move_[0]
+                pos2 = move_[1]
+            else:
+                pos1 = move[:2]
+                pos2 = move[2:]
 
+            if pos1+pos2 in ['e1g1','e1c1','e8g8','e8c8']:
+                is_enroque = True
+                if pos2[0] == 'c':
+                    enroque = 0
+                else:
+                    enroque = 7
+                piece = 'R'
             try:
                 col1 = letras.find(pos1[0])
                 row1 = 8-int(pos1[1])
@@ -206,6 +227,15 @@ class Parser:
 
             pos1 = (col1, row1)
             pos2 = (col2, row2)
+
+            if reverse:
+                piece_del = self.pieces_del[self.current_move]
+                self.board[pos2[1]][pos2[0]] = piece_del
+                self.board[pos1[1]][pos1[0]] = piece+self.current_color
+                if is_enroque:
+                    T = 'T'+self.current_color
+                    self.board[pos1[1]][enroque] = T
+                return True
 
             if self.board[pos1[1]][pos1[0]][0]!=piece:
                 print('La pieza no esta en la posicion inicial dada')
@@ -224,7 +254,7 @@ class Parser:
                     else:
                         self.board[pos1[1]][7] = '_E'
 
-                self.print_board()
+                # self.print_board()
             else:
                 print(4)
                 return False
@@ -314,18 +344,19 @@ class Parser:
                 reading_play = True
 
             if reading_play:
-                bracket_open = False
+                comment_open = False
                 words = line.split(' ')
                 for word in words:
-                    if bracket_open:
-                        if word[-1] == '}':
-                            bracket_open = False
+                    if comment_open:
+                        if word[-1] in '})':
+                            comment_open = False
                         continue
 
-                    if word[0] == '{':
-                        bracket_open = True
+                    if word[0] in '{(':
+                        comment_open = True
                         continue
-                    if word[0] in ['$!?']:
+
+                    if word[0] in '$!?':
                         continue
 
                     move = word.split('.')

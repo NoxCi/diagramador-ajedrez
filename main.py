@@ -121,9 +121,9 @@ class Board:
         Comvierte las coordenadas dadas a una posicion del
         tablero dde 8x8
         """
-        v1 = m_position[0]  < 0 or self.size < m_position[0]
-        v2 = m_position[1]  < 0 or self.size < m_position[1]
-        if  v1 or v2:
+        v1 = m_position[0] < 0 or self.size < m_position[0]
+        v2 = m_position[1] < 0 or self.size < m_position[1]
+        if v1 or v2:
             return
 
         pos = (int((m_position[0]-10)//self.piece_size),
@@ -253,21 +253,21 @@ def main():
             if not position:
                 return
 
-            if c_board.current_selection == dpg.mvKey_1:
+            if c_board.current_selection == 0:
                 c_board.change_box('P', position) # put peon
-            elif c_board.current_selection == dpg.mvKey_2:
+            elif c_board.current_selection == 1:
                 c_board.change_box('T', position) # put toker
-            elif c_board.current_selection == dpg.mvKey_3:
+            elif c_board.current_selection == 2:
                 c_board.change_box('C', position) # put horse
-            elif c_board.current_selection == dpg.mvKey_4:
+            elif c_board.current_selection == 3:
                 c_board.change_box('A', position) # put bishop
-            elif c_board.current_selection == dpg.mvKey_5:
+            elif c_board.current_selection == 4:
                 c_board.change_box('D', position) # put queen
-            elif c_board.current_selection == dpg.mvKey_6:
+            elif c_board.current_selection == 5:
                 c_board.change_box('R', position) # put king
-            elif c_board.current_selection == dpg.mvKey_D:
+            elif c_board.current_selection == 6:
                 c_board.change_box(None,position) # remove
-            elif c_board.current_selection == dpg.mvKey_Q:
+            elif c_board.current_selection == 7:
                 # draw arrow
                 size = c_board.piece_size
                 c = size//2
@@ -289,7 +289,7 @@ def main():
                 if c_board.step == 1:
                     return
 
-            elif c_board.current_selection == dpg.mvKey_W:
+            elif c_board.current_selection == 8:
                 # delete arrow
                 size = c_board.piece_size
                 c = size//2
@@ -299,7 +299,7 @@ def main():
                     if position == line[0] or position == line[1]:
                         c_board.lines.remove(line)
                         break
-            elif c_board.current_selection == dpg.mvKey_E:
+            elif c_board.current_selection == 9:
                 # color box
                 color = dpg.get_value('drawing_color')
                 r = int(color[0])
@@ -309,7 +309,7 @@ def main():
                 col = position[0]
                 row = position[1]
                 c_board.colored_boxes[row][col] = color
-            elif c_board.current_selection == dpg.mvKey_R:
+            elif c_board.current_selection == 10:
                 # discolor box
                 col = position[0]
                 row = position[1]
@@ -334,55 +334,19 @@ def main():
             else:
                 return
 
-        selected__Q = c_board.current_selection == dpg.mvKey_Q
-        if selected__Q and c_board.step == 1:
-            c_board.lines.pop()
-            c_board.step = 0
+        if data == dpg.mvKey_Left:
+            if c_board.reading_pgn:
+                pars.current_match.previews_position()
+                c_board.draw_board()
+            else:
+                return
 
-        if c_board.current_selection == data:
+        if data == dpg.mvKey_Escape :
             c_board.current_selection = -1
+            c_board.reading_pgn = False
             dpg.set_value("accion", "Sin seleccionar")
             dpg.set_value("pieza", "Sin seleccionar")
             return
-
-        if 48 < data and data < 55:
-            dpg.set_value("accion", "Añadiendo Pieza")
-            c_board.current_selection = data
-        elif data == dpg.mvKey_D:
-            dpg.set_value("accion", "Eliminando Pieza")
-            c_board.current_selection = data
-        elif data == dpg.mvKey_Q:
-            dpg.set_value("accion", "Dibujando Flecha")
-            c_board.current_selection = data
-        elif data == dpg.mvKey_W:
-            dpg.set_value("accion", "Eliminar Flecha")
-            c_board.current_selection = data
-        elif data == dpg.mvKey_E:
-            dpg.set_value("accion", "Colorear Casilla")
-            c_board.current_selection = data
-        elif data == dpg.mvKey_R:
-            dpg.set_value("accion", "Eliminar Casilla Coloreada")
-            c_board.current_selection = data
-        else:
-            dpg.set_value("accion", "Sin seleccionar")
-            c_board.current_selection = -1
-
-        if data == dpg.mvKey_1:
-            dpg.set_value("pieza", "Peon")
-        elif data == dpg.mvKey_2:
-            dpg.set_value("pieza", "Torre")
-        elif data == dpg.mvKey_3:
-            dpg.set_value("pieza", "Caballo")
-        elif data == dpg.mvKey_4:
-            dpg.set_value("pieza", "Alfil")
-        elif data == dpg.mvKey_5:
-            dpg.set_value("pieza", "Reina")
-        elif data == dpg.mvKey_6:
-            dpg.set_value("pieza", "Rey")
-        else:
-            dpg.set_value("pieza", "Sin seleccionar")
-
-
 
     def load_callback(sender, data):
         def file_callback(sender, data):
@@ -455,6 +419,8 @@ def main():
             pars.current_match = match
             c_board.board = match.board
             c_board.reading_pgn = True
+            dpg.set_value('accion','Leyendo partida PGN')
+            dpg.set_value('pieza','Sin seleccionar')
             c_board.draw_board()
 
         def close_callback(sender,data):
@@ -493,21 +459,59 @@ def main():
 
         dpg.open_file_dialog(callback=file_callback, extensions=".pgn")
 
-    controles =(
-        "Controles\n"
-        "1 : Agregar Peon\n"
-        "2 : Agregar Torre\n"
-        "3 : Agregar Caballo\n"
-        "4 : Agregar Alfil\n"
-        "5 : Agregar Reina\n"
-        "6 : Agregar Rey\n"
-        "D : Eliminar Pieza\n"
-        "Q : Dibujar Flecha\n"
-        "W : Eliminar Flecha\n"
-        "E : Colorear Casilla\n"
-        "R : Eliminar Casilla Coloreada\n"
-        "Click Derecho : Cambiar color de pieza"
-    )
+    def control_button(sender,data):
+        nonlocal c_board;
+        c_board.reading_pgn = False
+
+        add_arr = c_board.current_selection == 7
+        if add_arr and c_board.step == 1:
+            c_board.lines.pop()
+            c_board.step = 0
+
+        if sender == 'Peon':
+            c_board.current_selection = 0
+            dpg.set_value("accion", "Añadiendo Pieza")
+            dpg.set_value("pieza", "Peon")
+        elif sender == 'Torre':
+            c_board.current_selection = 1
+            dpg.set_value("accion", "Añadiendo Pieza")
+            dpg.set_value("pieza", "Torre")
+        elif sender == 'Caballo':
+            c_board.current_selection = 2
+            dpg.set_value("accion", "Añadiendo Pieza")
+            dpg.set_value("pieza", "Caballo")
+        elif sender == 'Alfil':
+            c_board.current_selection = 3
+            dpg.set_value("accion", "Añadiendo Pieza")
+            dpg.set_value("pieza", "Alfil")
+        elif sender == 'Reina':
+            c_board.current_selection = 4
+            dpg.set_value("accion", "Añadiendo Pieza")
+            dpg.set_value("pieza", "Reina")
+        elif sender == 'Rey':
+            c_board.current_selection = 5
+            dpg.set_value("accion", "Añadiendo Pieza")
+            dpg.set_value("pieza", "Rey")
+        elif sender == 'Eliminar Pieza':
+            c_board.current_selection = 6
+            dpg.set_value("accion", "Eliminando Pieza")
+            dpg.set_value("pieza", "Sin seleccionar")
+        elif sender == 'Añadir flecha':
+            c_board.current_selection = 7
+            dpg.set_value("accion", "Añadiendo flecha")
+            dpg.set_value("pieza", "Sin seleccionar")
+        elif sender == 'Eliminar flecha':
+            c_board.current_selection = 8
+            dpg.set_value("accion", "Eliminando flecha")
+            dpg.set_value("pieza", "Sin seleccionar")
+        elif sender == 'Colorear casilla':
+            c_board.current_selection = 9
+            dpg.set_value("accion", "Coloreando casilla")
+            dpg.set_value("pieza", "Sin seleccionar")
+        elif sender == 'Descolorear casilla':
+            c_board.current_selection = 10
+            dpg.set_value("accion", "Descolorando casilla")
+            dpg.set_value("pieza", "Sin seleccionar")
 
     c_board = Board(board = copy.deepcopy(empty_board))
     pars = Parser()
@@ -532,7 +536,27 @@ def main():
     dpg.add_drawing("canvas", width=c_board.size,height=c_board.size)
     dpg.add_image('board_img','',source=c_board.piece_p('Abb'))
     dpg.add_same_line()
+
+    controles =(
+        "\nControles\n"
+        "Click Derecho : Cambiar color de pieza\n\n"
+        "Flecha derecha: Mostrar siguiente jugada PGN\n\n"
+        "Flecha izquierda: Mostrar la jugada PGN previa\n\n"
+    )
+    dpg.add_child('controls',height=c_board.size)
+    dpg.add_button('Peon',callback=control_button)
+    dpg.add_button('Torre',callback=control_button)
+    dpg.add_button('Caballo',callback=control_button)
+    dpg.add_button('Alfil',callback=control_button)
+    dpg.add_button('Reina',callback=control_button)
+    dpg.add_button('Rey',callback=control_button)
+    dpg.add_button('Eliminar Pieza',callback=control_button)
+    dpg.add_button('Añadir flecha',callback=control_button)
+    dpg.add_button('Eliminar flecha',callback=control_button)
+    dpg.add_button('Colorear casilla',callback=control_button)
+    dpg.add_button('Descolorear casilla',callback=control_button)
     dpg.add_text(controles)
+    dpg.end()
 
     dpg.set_value('drawing_color',[0,0,0])
     name = "Nombre de Archivo"
@@ -557,4 +581,4 @@ def main():
 if __name__ == '__main__':
     main()
     # pars = Parser()
-    # pars.get_plays('reference/Kasparovs_Game_long_complete.pgn')
+    # pars.get_plays('reference/nuevo-london.pgn')
