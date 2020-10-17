@@ -19,3 +19,10 @@ por defecto se llamaran save.mrq, save.sv y img_save.jpg
 
 Al momento de querer eliminar una flecha, uno debe dar click en el
 principio o en el final de la flecha.
+
+Al seleccionar la acción de la barra de controles, se debe dar un click extra
+en el tablero justo despues de haber dado click en la acción. Esto es
+un problema en la implementación de la biblioteca dearpygui que por el momento,
+no se puede evitar.
+
+La opción para leer un archivo PGN se encuentra en el menu Herramientas.
