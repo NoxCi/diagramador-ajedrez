@@ -581,4 +581,4 @@ def main():
 if __name__ == '__main__':
     main()
     # pars = Parser()
-    # pars.get_plays('reference/nuevo-london.pgn')
+    # pars.get_plays('reference/Kasparovs_Game_short.pgn')

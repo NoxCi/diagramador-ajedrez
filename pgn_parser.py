@@ -1,4 +1,4 @@
-from utils import is_number, chess_position
+from utils import is_number, chess_position, chess_directions
 
 class Parser:
     class Match:
@@ -36,49 +36,65 @@ class Parser:
             move = self.moves[self.current_move]
             self.pgn_move(move, reverse=True)
 
+        def find_pos1(self, move, color, piece):
+            """
+            Encuentra la posicion inicial de un moviemto PGN en formato
+            corto
+            """
+            col1 = None
+            row1 = None
+            letras = 'abcdefgh'
+
+            if len(move) == 3:
+                if is_number(move[0]):
+                    row1 = move[0]
+                else:
+                    col1 = move[0]
+
+            pos2 = move[-2:]
+            try:
+                if col1 != None:
+                    col1 = letras.find(col1)
+                if row1 != None:
+                    row1 = 8-int(row1)
+                col2 = letras.find(pos2[0])
+                row2 = 8-int(pos2[1])
+                if row2 > 7:
+                    return
+            except Exception as e:
+                return
+
+            pos2 = (col2,row2)
+            if row1 != None:
+                for col in range(8):
+                    if self.board[row1][col] == piece+color:
+                        valido, _ = self.mov_valido((col,row1),pos2,piece,color)
+                        if valido:
+                            return chess_position(col,row1)
+
+            for row in range(8):
+                if col1 != None:
+                    if self.board[row][col1] == piece+color:
+                        valido, _ = self.mov_valido((col1,row),pos2,piece,color)
+                        if valido:
+                            return chess_position(col1,row)
+                else:
+                    for col in range(8):
+                        if self.board[row][col] == piece+color:
+                            valido, _ = self.mov_valido((col,row),pos2,piece,color)
+                            if valido:
+                                return chess_position(col,row)
+
         def mov_valido(self,pos1,pos2,piece,color):
+            """
+            Checa que el moviemto dado se valido respecto al color y pieza
+            dada
+            """
+
             col = pos1[0]
             row = pos1[1]
-            recursive = False
-            if piece == 'P':
-                if color == 'n':
-                    directions = [(0,1),(-1,1),
-                    (1,1),]
-                    if row == 1:
-                        directions.append((0,2))
-                if color == 'b':
-                    directions = [(0,-1),(-1,-1),
-                    (1,-1),]
-                    if row == 6:
-                        directions.append((0,-2))
-            if piece == 'R':
-                directions = [(0,1),(-1,1),
-                (1,1),(0,-1),(-1,-1),
-                (1,-1),(-1,0),(1,0)]
-                if col == 4 and row == 7 and color == 'b':
-                    directions.append((2,0))
-                    directions.append((-2,0))
-                if col == 4 and row == 0 and color == 'n':
-                    directions.append((2,0))
-                    directions.append((-2,0))
-            if piece == 'D':
-                recursive = True
-                directions = [(0,1),(-1,1),
-                (1,1),(0,-1),(-1,-1),
-                (1,-1),(-1,0),(1,0)]
-            if piece == 'T':
-                recursive=True
-                directions = [(0,1),(0,-1),
-                (-1,0),(1,0)]
-            if piece == 'A':
-                recursive = True
-                directions = [(1,1), (-1,1),
-                (-1,-1), (1,-1)]
-            if piece == 'C':
-                directions=[(1,-2),(-1,-2),
-                (2,1),(2,-1),(1,2),
-                (-1,2),(-2,1),(-2,-1)]
 
+            directions, recursive = chess_directions(piece, color, col, row)
 
             for dir in directions:
                 col = pos1[0]+dir[0]
@@ -200,11 +216,23 @@ class Parser:
                 pos2 = move_[1]
             elif 'x' in move:
                 move_ = move.split('x')
-                pos1 = move_[0]
+                if len(move_[0]) < 2:
+                    move = ''.join(move_)
+                    pos1 = self.find_pos1(move,self.current_color,piece)
+                    print(pos1)
+                else:
+                    pos1 = move_[0]
                 pos2 = move_[1]
             else:
-                pos1 = move[:2]
-                pos2 = move[2:]
+                pos2 = move[-2:]
+                if len(move) < 4:
+                    pos1 = self.find_pos1(move,self.current_color,piece)
+                else:
+                    pos1 = move[:2]
+
+            if not pos1:
+                print(f'pos2 invalida: {move[:2]}')
+                return False
 
             if pos1+pos2 in ['e1g1','e1c1','e8g8','e8c8']:
                 is_enroque = True
@@ -219,10 +247,10 @@ class Parser:
                 col2 = letras.find(pos2[0])
                 row2 = 8-int(pos2[1])
                 if row1 > 7 or row2 > 7:
-                    print(1)
+                    print('El valor de los renglones es mayor a 8')
                     return False
             except Exception as e:
-                print(2)
+                print('Letras de columas no validas')
                 return False
 
             pos1 = (col1, row1)
@@ -254,9 +282,9 @@ class Parser:
                     else:
                         self.board[pos1[1]][7] = '_E'
 
-                # self.print_board()
+                self.print_board()
             else:
-                print(4)
+                print(f'El moviemto {move} no es valido')
                 return False
 
             if look_for_mate:
