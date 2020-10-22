@@ -22,6 +22,7 @@ class Parser:
                 return
 
             move = self.moves[self.current_move]
+            print(move)
             self.pgn_move(move)
             self.current_color = 'n' if self.current_color == 'b' else 'b'
             size = len(self.moves)
@@ -169,6 +170,12 @@ class Parser:
 
             print(self.current_move//2+1,move)
             letras = 'abcdefgh'
+            p_names = {'P':'',
+                       'R':'K',
+                       'D':'Q',
+                       'T':'R',
+                       'A':'B',
+                       'C':'N',}
             look_for_mate = False
             is_enroque = False
 
@@ -216,23 +223,26 @@ class Parser:
                 pos2 = move_[1]
             elif 'x' in move:
                 move_ = move.split('x')
-                if len(move_[0]) < 2:
+                pos2 = move_[1]
+                if not reverse and len(move_[0]) < 2:
                     move = ''.join(move_)
                     pos1 = self.find_pos1(move,self.current_color,piece)
-                    print(pos1)
+                    self.moves[self.current_move] = p_names[piece]+pos1+pos2
                 else:
                     pos1 = move_[0]
-                pos2 = move_[1]
             else:
                 pos2 = move[-2:]
-                if len(move) < 4:
+                if not reverse and len(move) < 4:
                     pos1 = self.find_pos1(move,self.current_color,piece)
+                    self.moves[self.current_move] = p_names[piece]+pos1+pos2
                 else:
                     pos1 = move[:2]
 
             if not pos1:
                 print(f'pos2 invalida: {move[:2]}')
                 return False
+
+
 
             if pos1+pos2 in ['e1g1','e1c1','e8g8','e8c8']:
                 is_enroque = True
@@ -400,8 +410,8 @@ class Parser:
                         continue
                     if '-1' in move or '-0' in move: # resultado
                         continue
+                    match.moves.append(move)
                     if match.pgn_move(move):
-                        match.moves.append(move)
                         match.current_color = 'n'
                         match.current_move += 1
                     else:
