@@ -1,4 +1,5 @@
 import dearpygui.core as dpg
+import dearpygui.simple as dpgs
 from dearpygui.simple import menu_bar, menu, window
 from PIL import Image, ImageDraw
 import math
@@ -101,8 +102,8 @@ class Board:
             draw.line([end,arrow_2],width=p_size//8,fill=line[2])
 
         board = Image.blend(board,im_arrows,0.3)
-        board.save('tmp.jpg')
-        dpg.draw_image('canvas','tmp.jpg',[0,self.size])
+        board.save('tmp.png')
+        dpg.draw_image('canvas','tmp.png',[0,self.size])
 
     def change_box(self,piece_name, position):
         """
@@ -127,7 +128,7 @@ class Board:
             return
 
         pos = (int((m_position[0]-10)//self.piece_size),
-               int((m_position[1]+10)//self.piece_size))
+               int((m_position[1]-10)//self.piece_size))
         return pos
 
     def piece_p(self,name):
@@ -217,12 +218,12 @@ class Board:
         Guarda la imagen del tablero copiando el contenido
         del archivo tmp.jps
         """
-        board = Image.open('tmp.jpg')
+        board = Image.open('tmp.png')
         name = dpg.get_value('save_img_name')
         if len(name) == 0:
-            board.save('img_save.jpg')
+            board.save('img_save.png')
         else:
-            board.save(name+'.jpg')
+            board.save(name+'.png')
 
 
 def main():
@@ -402,7 +403,7 @@ def main():
 
     def close(sender,data):
         try:
-            os.remove("tmp.jpg")
+            os.remove("tmp.png")
         except Exception as e:
             pass
 
@@ -518,65 +519,66 @@ def main():
 
     main_width = c_board.size+220
     main_height= c_board.size+240
-    dpg.set_main_window_size(main_width, main_height)
-    dpg.set_main_window_title('Diagramador')
-    dpg.set_main_window_resizable(False)
-    dpg.set_exit_callback(close)
 
-    with menu_bar('Menu bar'):
-        with menu('Archivo'):
-            dpg.add_menu_item("Guardar", callback=save_callback)
-            dpg.add_menu_item("Guardar Imagen", callback=save_image_callback)
-            dpg.add_menu_item("Cargar tablero", callback=load_callback)
-        with menu('Herramientas'):
-            dpg.add_menu_item("Leer archivo PGN", callback=pgn_reader)
-        with menu('Color'):
-            dpg.add_color_edit3('Seleccion de Color',source='drawing_color')
+    with dpgs.window('Diagramador'):
+        dpg.set_main_window_size(main_width, main_height)
+        dpg.set_main_window_resizable(False)
+        dpg.set_exit_callback(close)
 
-    dpg.add_drawing("canvas", width=c_board.size,height=c_board.size)
-    dpg.add_image('board_img','',source=c_board.piece_p('Abb'))
-    dpg.add_same_line()
+        with menu_bar('Menu bar'):
+            with menu('Archivo'):
+                dpg.add_menu_item("Guardar", callback=save_callback)
+                dpg.add_menu_item("Guardar Imagen", callback=save_image_callback)
+                dpg.add_menu_item("Cargar tablero", callback=load_callback)
+            with menu('Herramientas'):
+                dpg.add_menu_item("Leer archivo PGN", callback=pgn_reader)
+            with menu('Color'):
+                dpg.add_color_edit3('Seleccion de Color',source='drawing_color')
 
-    controles =(
-        "\nControles\n"
-        "Click Derecho : Cambiar color de pieza\n\n"
-        "Flecha derecha: Mostrar siguiente jugada PGN\n\n"
-        "Flecha izquierda: Mostrar la jugada PGN previa\n\n"
-    )
-    dpg.add_child('controls',height=c_board.size)
-    dpg.add_button('Peon',callback=control_button)
-    dpg.add_button('Torre',callback=control_button)
-    dpg.add_button('Caballo',callback=control_button)
-    dpg.add_button('Alfil',callback=control_button)
-    dpg.add_button('Reina',callback=control_button)
-    dpg.add_button('Rey',callback=control_button)
-    dpg.add_button('Eliminar Pieza',callback=control_button)
-    dpg.add_button('Añadir flecha',callback=control_button)
-    dpg.add_button('Eliminar flecha',callback=control_button)
-    dpg.add_button('Colorear casilla',callback=control_button)
-    dpg.add_button('Descolorear casilla',callback=control_button)
-    dpg.add_text(controles)
-    dpg.end()
+        dpg.add_drawing("canvas", width=c_board.size,height=c_board.size)
+        dpg.add_image('board_img','',source=c_board.piece_p('Abb'))
+        dpg.add_same_line()
 
-    dpg.set_value('drawing_color',[0,0,0])
-    name = "Nombre de Archivo"
-    dpg.add_input_text(name, width=250, source='save_name')
-    name = "Nombre de Imagen"
-    dpg.add_input_text(name, width=250, source='save_img_name')
-    dpg.add_button("Limpiar tablero", callback=clean_callback)
-    name = "Tablero por defecto"
-    dpg.add_button(name, callback=default_board_callback)
+        controles =(
+            "\nControles\n"
+            "Click Derecho : Cambiar color de pieza\n\n"
+            "Flecha derecha: Mostrar siguiente jugada PGN\n\n"
+            "Flecha izquierda: Mostrar la jugada PGN previa\n\n"
+        )
+        dpg.add_child('controls',autosize_x=True,height=c_board.size)
+        dpg.add_button('Peon',callback=control_button)
+        dpg.add_button('Torre',callback=control_button)
+        dpg.add_button('Caballo',callback=control_button)
+        dpg.add_button('Alfil',callback=control_button)
+        dpg.add_button('Reina',callback=control_button)
+        dpg.add_button('Rey',callback=control_button)
+        dpg.add_button('Eliminar Pieza',callback=control_button)
+        dpg.add_button('Añadir flecha',callback=control_button)
+        dpg.add_button('Eliminar flecha',callback=control_button)
+        dpg.add_button('Colorear casilla',callback=control_button)
+        dpg.add_button('Descolorear casilla',callback=control_button)
+        dpg.add_text(controles)
+        dpg.end()
 
-    name = "Acción"
-    dpg.add_label_text(name, default_value='Sin seleccionar', source="accion")
-    dpg.add_label_text("Pieza", default_value='Sin seleccionar', source="pieza")
-    dpg.add_label_text("Color de pieza", default_value='Blanco', source='color_piece')
-    c_board.draw_board()
+        dpg.set_value('drawing_color',[0,0,0])
+        name = "Nombre de Archivo"
+        dpg.add_input_text(name, width=250, source='save_name')
+        name = "Nombre de Imagen"
+        dpg.add_input_text(name, width=250, source='save_img_name')
+        dpg.add_button("Limpiar tablero", callback=clean_callback)
+        name = "Tablero por defecto"
+        dpg.add_button(name, callback=default_board_callback)
 
-    dpg.set_key_press_callback(key_press_callback)
-    dpg.set_mouse_click_callback(mouse_click_callback)
+        name = "Acción"
+        dpg.add_label_text(name, default_value='Sin seleccionar', source="accion")
+        dpg.add_label_text("Pieza", default_value='Sin seleccionar', source="pieza")
+        dpg.add_label_text("Color de pieza", default_value='Blanco', source='color_piece')
+        c_board.draw_board()
 
-    dpg.start_dearpygui()
+        dpg.set_key_press_callback(key_press_callback)
+        dpg.set_mouse_click_callback(mouse_click_callback)
+
+        dpg.start_dearpygui(primary_window = 'Diagramador')
 
 if __name__ == '__main__':
     main()

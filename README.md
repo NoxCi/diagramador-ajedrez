@@ -2,9 +2,9 @@
 ## Autor: Hiram Ehecatl Lujano Pastrana
 
 Este programa fue hecho con python 3, tambien se necesita de 2 bibliotecas para
-funcionar dearpygui y Pillow, para instalarlas solo basta ejecutar
+funcionar dearpygui 0.5.66 y Pillow, para instalarlas solo basta ejecutar
 
-> pip install dearpygui Pillow
+> pip install dearpygui==0.5.66 Pillow
 
 el programa se ejecuta de la siguiente forma
 
